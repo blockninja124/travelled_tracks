@@ -6,6 +6,8 @@
   "client": [
   ],
   "mixins": [
+    "MixinSuspensionTrackBlockEntity",
+    "MixinWheelBlockEntity"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -27,3 +27,23 @@ versionRange = "[1.20.1,)"
 ordering = "NONE"
 side = "BOTH"
 
+[[dependencies.travelled_tracks]]
+modId = "trackwork"
+mandatory = true
+versionRange = "[1.2.0,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.travelled_tracks]]
+modId = "trmt"
+mandatory = true
+versionRange = "[0.4-1.20,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.travelled_tracks]]
+modId = "connectormod"
+mandatory = true
+versionRange = "*"
+ordering = "NONE"
+side = "BOTH"
