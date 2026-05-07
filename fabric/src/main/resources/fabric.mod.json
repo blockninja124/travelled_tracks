@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "travelled_tracks",
+  "version": "${version}",
+  "name": "travelled_tracks",
+  "description": "",
+  "authors": [
+    ""
+  ],
+  "contact": {
+    "homepage": ""
+  },
+  "license": "MIT",
+  "icon": "assets/travelled_tracks/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.blockninja.fabric.TravelledTracksFabric"
+    ],
+    "client": [
+      "com.blockninja.fabric.client.TravelledTracksFabricClient"
+    ]
+  },
+  "mixins": [
+    "travelled_tracks.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.2",
+    "minecraft": "~1.20.1",
+    "java": ">=17",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "another-mod": "*"
+  }
+}
