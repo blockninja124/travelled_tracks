@@ -43,7 +43,8 @@ public abstract class MixinWheelBlockEntity extends BlockEntity {
 
     @Inject(
             method = "tick",
-            at = @At("HEAD")
+            at = @At("HEAD"),
+            remap = false
     )
     private void injectTick(CallbackInfo ci) {
         if (Math.abs(this.getWheelSpeed()) < 16) return;
