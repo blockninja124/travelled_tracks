@@ -1,8 +1,9 @@
-package com.blockninja.mixin;
+package com.blockninja.travelled_tracks.mixin;
 
-import com.blockninja.TRMTCompat;
-import com.simibubi.create.content.kinetics.base.HorizontalKineticBlock;
-import edn.stratodonut.trackwork.tracks.blocks.WheelBlockEntity;
+import com.blockninja.travelled_tracks.TRMTCompat;
+import com.simibubi.create.content.kinetics.base.RotatedPillarKineticBlock;
+import edn.stratodonut.trackwork.TrackworkUtil;
+import edn.stratodonut.trackwork.tracks.blocks.SuspensionTrackBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -25,8 +26,8 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import static edn.stratodonut.trackwork.tracks.forces.SimpleWheelController.UP;
 import static org.valkyrienskies.mod.api.ValkyrienSkies.toMinecraft;
 
-@Mixin(WheelBlockEntity.class)
-public abstract class MixinWheelBlockEntity extends BlockEntity {
+@Mixin(SuspensionTrackBlockEntity.class)
+public abstract class MixinSuspensionTrackBlockEntity extends BlockEntity {
 
     @Shadow
     private float wheelTravel;
@@ -35,9 +36,9 @@ public abstract class MixinWheelBlockEntity extends BlockEntity {
     private BlockPos travelled_tracks$lastGroundPos = null;
 
     @Shadow
-    public abstract float getWheelSpeed();
+    public abstract float getSpeed();
 
-    public MixinWheelBlockEntity(BlockEntityType<?> blockEntityType, BlockPos blockPos, BlockState blockState) {
+    public MixinSuspensionTrackBlockEntity(BlockEntityType<?> blockEntityType, BlockPos blockPos, BlockState blockState) {
         super(blockEntityType, blockPos, blockState);
     }
 
@@ -46,7 +47,7 @@ public abstract class MixinWheelBlockEntity extends BlockEntity {
             at = @At("HEAD")
     )
     private void injectTick(CallbackInfo ci) {
-        if (Math.abs(this.getWheelSpeed()) < 16) return;
+        if (Math.abs(this.getSpeed()) < 8) return;
 
         Vector3d pos = VectorConversionsMCKt.toJOML(Vec3.atBottomCenterOf(this.getBlockPos()));
         Vector3dc ground = VSGameUtilsKt.getWorldCoordinates(this.level, this.getBlockPos(), pos.sub(UP.mul(this.wheelTravel * 1.2, new Vector3d())));
@@ -56,7 +57,8 @@ public abstract class MixinWheelBlockEntity extends BlockEntity {
         }
         travelled_tracks$lastGroundPos = blockpos;
 
-        Direction blockDir = this.getBlockState().getValue(HorizontalKineticBlock.HORIZONTAL_FACING);
+        Vector3d dirEstimate = TrackworkUtil.getForwardVec3d(this.getBlockState().getValue(RotatedPillarKineticBlock.AXIS), this.getSpeed());
+        Direction blockDir = Direction.getNearest(dirEstimate.x, dirEstimate.y, dirEstimate.z);
         Ship ship = ValkyrienSkies.getShipManagingBlock(this.level, blockpos);
         if (ship != null) {
             Vector3d vecDir = VectorConversionsMCKt.toJOMLD(blockDir.getNormal());
@@ -64,6 +66,6 @@ public abstract class MixinWheelBlockEntity extends BlockEntity {
             blockDir = Direction.getNearest(vecDir.x, vecDir.y, vecDir.z);
         }
 
-        TRMTCompat.weatherGround(this.level, blockpos, false, blockDir);
+        TRMTCompat.weatherGround(this.level, blockpos, true, blockDir);
     }
 }

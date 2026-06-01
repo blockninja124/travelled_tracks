@@ -5,13 +5,14 @@ license = "MIT"
 
 [[mods]]
 modId = "travelled_tracks"
-version = "${version}"
+version = "${mod_version}"
 displayName = "Travelled Tracks"
 authors = "Brickyboy"
 description = '''
 Adds compatiblity between Trackwork and TRMT (The Roads More Travelled)
 '''
-#logoFile = ""
+credits = "Crazywoddman - the car build in the logo"
+logoFile = "logo.png"
 
 [[dependencies.travelled_tracks]]
 modId = "forge"

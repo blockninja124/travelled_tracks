@@ -1,4 +1,4 @@
-package com.blockninja;
+package com.blockninja.travelled_tracks;
 
 import milkucha.trmt.TRMTBlocks;
 import milkucha.trmt.TRMTConfig;
@@ -38,8 +38,6 @@ public class TRMTCompat {
 
         // Check for vegetation at the player's feet level (one block above the ground).
         // Vegetation has no collision so the player passes through it — track and break it.
-        // This fires regardless of what the ground block is so that vegetation on any surface
-        // can be trampled, even when the ground block's own erosion category is disabled.
         BlockPos vegPos = groundPos.above();
         BlockState vegState = level.getBlockState(vegPos);
         if (erosion.vegetationEnabled && BlockThresholds.isVegetation(vegState.getBlock())) {
@@ -48,9 +46,10 @@ public class TRMTCompat {
             manager.broadcastEntryUpdate(vegPos, vegState.getBlock());
         }
 
-        boolean tracked = (erosion.grassEnabled && (state.is(Blocks.GRASS_BLOCK) || state.is(TRMTBlocks.ERODED_GRASS_BLOCK)))
-                || (erosion.dirtEnabled && (state.is(Blocks.DIRT) || state.is(TRMTBlocks.ERODED_DIRT)))
-                || (erosion.sandEnabled && (state.is(Blocks.SAND) || state.is(TRMTBlocks.ERODED_SAND)))
+
+        boolean tracked = (erosion.grassEnabled && (state.is(Blocks.GRASS_BLOCK) || state.is(TRMTBlocks.ERODED_GRASS_BLOCK.get())))
+                || (erosion.dirtEnabled && (state.is(Blocks.DIRT) || state.is(TRMTBlocks.ERODED_DIRT.get())))
+                || (erosion.sandEnabled && (state.is(Blocks.SAND) || state.is(TRMTBlocks.ERODED_SAND.get())))
                 || (erosion.leavesEnabled && BlockThresholds.isLeaves(block));
 
         if (!tracked) {
@@ -68,18 +67,18 @@ public class TRMTCompat {
         Direction left  = facing.getCounterClockWise();
         Direction right = facing.getClockWise();
 
-        trmt$stepAdjacent(level, manager, groundPos.offset(facing.getNormal()), 0.2f * mult, gameTime);
-        trmt$stepAdjacent(level, manager, groundPos.offset(left.getNormal()),   0.5f * mult, gameTime);
-        trmt$stepAdjacent(level, manager, groundPos.offset(right.getNormal()),  0.5f * mult, gameTime);
+        trmt$stepAdjacent(level, manager, groundPos.relative(facing), 0.2f * mult, gameTime);
+        trmt$stepAdjacent(level, manager, groundPos.relative(left),   0.5f * mult, gameTime);
+        trmt$stepAdjacent(level, manager, groundPos.relative(right),  0.5f * mult, gameTime);
     }
 
     private static void trmt$stepAdjacent(Level world, ErosionMapManager manager,
                                           BlockPos pos, float amount, long gameTime) {
         BlockState adjState = world.getBlockState(pos);
         TRMTConfig.ErosionToggles erosion = TRMTConfig.get().erosion;
-        if ((erosion.grassEnabled && (adjState.is(Blocks.GRASS_BLOCK) || adjState.is(TRMTBlocks.ERODED_GRASS_BLOCK)))
-                || (erosion.dirtEnabled && (adjState.is(Blocks.DIRT) || adjState.is(TRMTBlocks.ERODED_DIRT)))
-                || (erosion.sandEnabled && (adjState.is(Blocks.SAND) || adjState.is(TRMTBlocks.ERODED_SAND)))
+        if ((erosion.grassEnabled && (adjState.is(Blocks.GRASS_BLOCK) || adjState.is(TRMTBlocks.ERODED_GRASS_BLOCK.get())))
+                || (erosion.dirtEnabled && (adjState.is(Blocks.DIRT) || adjState.is(TRMTBlocks.ERODED_DIRT.get())))
+                || (erosion.sandEnabled && (adjState.is(Blocks.SAND) || adjState.is(TRMTBlocks.ERODED_SAND.get())))
                 || (erosion.leavesEnabled && BlockThresholds.isLeaves(adjState.getBlock()))) {
             manager.onStep(pos, adjState.getBlock(), amount, gameTime);
             trmt$tryTransform(world, manager, pos);
@@ -97,6 +96,12 @@ public class TRMTCompat {
             BlockPos upper = pos.above();
             if (world.getBlockState(upper).is(state.getBlock())) {
                 world.removeBlock(upper, false);
+            }
+            // Tall grass degrades to short grass rather than breaking entirely.
+            if (state.is(Blocks.TALL_GRASS)) {
+                world.setBlock(pos, Blocks.GRASS.defaultBlockState(), Block.UPDATE_ALL);
+                manager.removeEntry(pos);
+                return;
             }
         }
 
@@ -120,24 +125,26 @@ public class TRMTCompat {
 
         // Threshold reached — advance visual stage or transform the block.
         if (state.is(Blocks.SAND)) {
+            if (!world.getBlockState(pos.above()).isAir()) return;
             Direction erodedFacing = trmt$rotationToFacing(BlockThresholds.posRotation(pos));
             world.setBlock(pos,
-                    TRMTBlocks.ERODED_SAND.defaultBlockState()
-                            .trySetValue(ErodedSandBlock.FACING, erodedFacing)
-                            .trySetValue(ErodedSandBlock.STAGE, 0),
+                    TRMTBlocks.ERODED_SAND.get().defaultBlockState()
+                            .setValue(ErodedSandBlock.FACING, erodedFacing)
+                            .setValue(ErodedSandBlock.STAGE, 0),
                     Block.UPDATE_ALL);
             manager.removeEntry(pos);
-            manager.writeCooldownEntry(pos, TRMTBlocks.ERODED_SAND, world.getGameTime());
+            manager.writeCooldownEntry(pos, TRMTBlocks.ERODED_SAND.get(), world.getGameTime());
             return;
         }
 
-        if (state.is(TRMTBlocks.ERODED_SAND)) {
+        if (state.is(TRMTBlocks.ERODED_SAND.get())) {
+            if (!world.getBlockState(pos.above()).isAir()) return;
             int stage = state.getValue(ErodedSandBlock.STAGE);
             if (stage < 4) {
-                world.setBlock(pos, state.trySetValue(ErodedSandBlock.STAGE, stage + 1), Block.UPDATE_ALL);
+                world.setBlock(pos, state.setValue(ErodedSandBlock.STAGE, stage + 1), Block.UPDATE_ALL);
             }
             manager.removeEntry(pos);
-            manager.writeCooldownEntry(pos, TRMTBlocks.ERODED_SAND, world.getGameTime());
+            manager.writeCooldownEntry(pos, TRMTBlocks.ERODED_SAND.get(), world.getGameTime());
             return;
         }
 
@@ -150,60 +157,63 @@ public class TRMTCompat {
         }
 
         if (state.is(Blocks.GRASS_BLOCK)) {
-            // Threshold reached — place the real eroded grass block at stage 0.
+            if (world.getBlockState(pos.above()).is(Blocks.WATER)) return;
             Direction erodedFacing = trmt$rotationToFacing(BlockThresholds.posRotation(pos));
             world.setBlock(pos,
-                    TRMTBlocks.ERODED_GRASS_BLOCK.defaultBlockState()
-                            .trySetValue(ErodedGrassBlock.FACING, erodedFacing)
-                            .trySetValue(ErodedGrassBlock.STAGE, 0),
+                    TRMTBlocks.ERODED_GRASS_BLOCK.get().defaultBlockState()
+                            .setValue(ErodedGrassBlock.FACING, erodedFacing)
+                            .setValue(ErodedGrassBlock.STAGE, 0),
                     Block.UPDATE_ALL);
             manager.removeEntry(pos);
-            manager.writeCooldownEntry(pos, TRMTBlocks.ERODED_GRASS_BLOCK, world.getGameTime());
+            manager.writeCooldownEntry(pos, TRMTBlocks.ERODED_GRASS_BLOCK.get(), world.getGameTime());
             return;
         }
 
-        if (state.is(TRMTBlocks.ERODED_GRASS_BLOCK)) {
+        if (state.is(TRMTBlocks.ERODED_GRASS_BLOCK.get())) {
+            if (world.getBlockState(pos.above()).is(Blocks.WATER)) return;
             Direction facing = state.getValue(ErodedGrassBlock.FACING);
             int currentStage = state.getValue(ErodedGrassBlock.STAGE);
             if (currentStage < 4) {
-                world.setBlock(pos, state.trySetValue(ErodedGrassBlock.STAGE, currentStage + 1), Block.UPDATE_ALL);
+                world.setBlock(pos, state.setValue(ErodedGrassBlock.STAGE, currentStage + 1), Block.UPDATE_ALL);
                 manager.removeEntry(pos);
-                manager.writeCooldownEntry(pos, TRMTBlocks.ERODED_GRASS_BLOCK, world.getGameTime());
+                manager.writeCooldownEntry(pos, TRMTBlocks.ERODED_GRASS_BLOCK.get(), world.getGameTime());
                 return;
             }
             // Stage 4 reached — convert to eroded_dirt, carrying FACING forward.
             world.setBlock(pos,
-                    TRMTBlocks.ERODED_DIRT.defaultBlockState().trySetValue(ErodedDirtBlock.FACING, facing),
+                    TRMTBlocks.ERODED_DIRT.get().defaultBlockState().setValue(ErodedDirtBlock.FACING, facing),
                     Block.UPDATE_ALL);
             manager.removeEntry(pos);
             return;
         }
 
-        if (state.is(TRMTBlocks.ERODED_DIRT)) {
+        if (state.is(TRMTBlocks.ERODED_DIRT.get())) {
+            if (world.getBlockState(pos.above()).is(Blocks.WATER)) return;
             Direction facing = state.getValue(ErodedDirtBlock.FACING);
             int currentStage = state.getValue(ErodedDirtBlock.STAGE);
             if (currentStage < 3) {
                 // Advance to the next visual stage, preserving facing.
                 world.setBlock(pos,
-                        state.trySetValue(ErodedDirtBlock.STAGE, currentStage + 1),
+                        state.setValue(ErodedDirtBlock.STAGE, currentStage + 1),
                         Block.UPDATE_ALL);
                 manager.removeEntry(pos);
                 return;
             }
             // Stage 3 reached — carry rotation forward to eroded_coarse_dirt.
             world.setBlock(pos,
-                    TRMTBlocks.ERODED_COARSE_DIRT.defaultBlockState().trySetValue(ErodedDirtBlock.FACING, facing),
+                    TRMTBlocks.ERODED_COARSE_DIRT.get().defaultBlockState().setValue(ErodedDirtBlock.FACING, facing),
                     Block.UPDATE_ALL);
             manager.removeEntry(pos);
             return;
         }
 
         if (!state.is(Blocks.DIRT)) return;
+        if (world.getBlockState(pos.above()).is(Blocks.WATER)) return;
         Direction erodedFacing = trmt$rotationToFacing(BlockThresholds.posRotation(pos));
         world.setBlock(pos,
-                TRMTBlocks.ERODED_DIRT.defaultBlockState()
-                        .trySetValue(ErodedDirtBlock.FACING, erodedFacing)
-                        .trySetValue(ErodedDirtBlock.STAGE, 1),
+                TRMTBlocks.ERODED_DIRT.get().defaultBlockState()
+                        .setValue(ErodedDirtBlock.FACING, erodedFacing)
+                        .setValue(ErodedDirtBlock.STAGE, 1),
                 Block.UPDATE_ALL);
         manager.removeEntry(pos);
     }

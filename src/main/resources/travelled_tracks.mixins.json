@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.blockninja.travelled_tracks.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "travelled_tracks.refmap.json",
+  "mixins": [
+    "MixinSuspensionTrackBlockEntity",
+    "MixinWheelBlockEntity"
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
