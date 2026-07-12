@@ -47,6 +47,7 @@ public abstract class MixinWheelBlockEntity extends BlockEntity {
             remap = false
     )
     private void injectTick(CallbackInfo ci) {
+        if (this.level == null || this.level.isClientSide) return;
         if (Math.abs(this.getWheelSpeed()) < 16) return;
 
         Vector3d pos = VectorConversionsMCKt.toJOML(Vec3.atBottomCenterOf(this.getBlockPos()));

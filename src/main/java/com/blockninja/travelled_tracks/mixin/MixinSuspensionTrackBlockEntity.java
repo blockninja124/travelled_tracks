@@ -48,6 +48,7 @@ public abstract class MixinSuspensionTrackBlockEntity extends BlockEntity {
             remap = false
     )
     private void injectTick(CallbackInfo ci) {
+        if (this.level == null || this.level.isClientSide) return;
         if (Math.abs(this.getSpeed()) < 8) return;
 
         Vector3d pos = VectorConversionsMCKt.toJOML(Vec3.atBottomCenterOf(this.getBlockPos()));
